@@ -1,4 +1,4 @@
-import { getRpgItemsSql, updateRpgItemSql } from "../sqlmanager";
+import { addRpgItemSql, getRpgItemSql, getRpgItemsSql, updateRpgItemSql } from "../sqlmanager";
 
 export class RpgItem {
     private name: string;
@@ -50,15 +50,24 @@ export class RpgItem {
 
 export const rpg_inventory: { [client_name: string]: RpgItem[]; } = { };
 
-export function rpgAddCountItem(client_name: string, item: RpgItem, count: number = 0): void {
-    for (let index = 0; index < rpg_inventory[client_name].length; index++) {
-        if(rpg_inventory[client_name][index].getName() === item.getName()) {
-            rpg_inventory[client_name][index].addCount(count);
-            updateRpgItemSql(client_name, item, rpg_inventory[client_name][index].getCount() + count);
-            return;
-        }
-    }
+export function rpgAddItem(client_name: string, item: RpgItem, count: number = 1): void {
+    getRpgItemSql(client_name, item)
+        .then((result) => {
+            if(result[0] !== undefined && result[0] !== null) {
+                addRpgItemSql(client_name, item, count);
+            }
 
+            for (let index = 0; index < rpg_inventory[client_name].length; index++) {
+                if(rpg_inventory[client_name][index].getName() === item.getName()) {
+                    rpg_inventory[client_name][index].addCount(count);
+                    updateRpgItemSql(client_name, item, rpg_inventory[client_name][index].getCount() + count);
+                    return;
+                }
+            }
+        })
+        .catch((err) => {
+            console.error(err);
+        });
     rpg_inventory[client_name].push(item);
 }
 
@@ -111,7 +120,8 @@ export function rpgInitItems(client_name: string): void {
     getRpgItemsSql(client_name)
         .then((result) => {
             for (let index = 0; index < result.length; index++) {
-                rpgAddCountItem(client_name, new RpgItem(result[index]['name'], result[index]['description'],
+                console.log(result, result.length);
+                rpgAddItem(client_name, new RpgItem(result[index]['name'], result[index]['description'],
                     result[index]['type'], result[index]['price'], result[index]['count']));
             }
         })

@@ -1138,9 +1138,22 @@ export function addRpgItemSql(client_name: string, item: RpgItem, count: number)
 }
 
 export function getRpgItemsSql(client_name: string): Promise<any> {
-    const sql = `SELECT DISTINCT im.name, im.description, im.type, im.price, pim.count FROM rpg_items AS im, rpg_players_items AS pim WHERE pim.player_id = (SELECT id FROM accounts WHERE user_name = ?) AND im.id = pim.item_id `;
+    const sql = `SELECT DISTINCT im.name, im.description, im.type, im.price, pim.count FROM rpg_items AS im, rpg_players_items AS pim WHERE pim.player_id = (SELECT id FROM accounts WHERE user_name = ?) AND im.id = pim.item_id`;
     return new Promise((resolve, reject) => {
         connection.query(sql, [client_name], function(err, results: any) {
+            if(err) {
+                console.error(err);
+                return reject(err);
+            }
+            return resolve(results);
+        });
+    });
+}
+
+export function getRpgItemSql(client_name: string, item: RpgItem): Promise<any> {
+    const sql = `SELECT DISTINCT im.name, im.description, im.type, im.price, pim.count FROM rpg_items AS im, rpg_players_items AS pim WHERE pim.player_id = (SELECT id FROM accounts WHERE user_name = ?) AND im.id = pim.item_id AND im.name = ?`;
+    return new Promise((resolve, reject) => {
+        connection.query(sql, [client_name, item.getName()], function(err, results: any) {
             if(err) {
                 console.error(err);
                 return reject(err);
