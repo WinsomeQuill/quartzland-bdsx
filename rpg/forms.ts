@@ -23,7 +23,7 @@ export function rpgMainMenu(client: Player): void {
                     break;
 
                 case 1:
-
+                    rpgItemsForm(client);
                     break;
 
                 case 2:
@@ -162,7 +162,7 @@ export function rpgItemsForm(client: Player): void {
         if(data.response === null) {
 
         } else {
-            if(data.response === items.length + 1) {
+            if(data.response === items.length) {
                 rpgMainMenu(client);
             } else {
                 rpgItemDescriptionForm(client, items[data.response]);
@@ -172,15 +172,29 @@ export function rpgItemsForm(client: Player): void {
 }
 
 export function rpgItemDescriptionForm(client: Player, item: RpgItem): void {
+    let type;
+    switch(item.getType()) {
+        case 1:
+            type = `${gray}Обычный${white}`;
+            break;
+
+        case 2:
+            type = `${yellow}Редкий${white}`;
+            break;
+
+        case 3:
+            type = `${gold}Легендарный${white}`;
+            break;
+    }
     const form = new SimpleForm();
     form.setTitle(`RPG Предмет ${item.getName()}`);
-    form.setContent(`Предмет: ${item.getName()}\nОписание: ${item.getDescription()}`);
+    form.setContent(`Предмет: ${item.getName()}\nРедкость: ${type}\nОписание: ${item.getDescription()}`);
     form.addButton(new FormButton("Назад"));
     form.sendTo(client.getNetworkIdentifier(), async (data) => {
         if(data.response === null) {
 
         } else {
-            rpgMainMenu(client);
+            rpgItemsForm(client);
         }
     });
 }

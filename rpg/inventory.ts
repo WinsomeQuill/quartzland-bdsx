@@ -50,17 +50,16 @@ export class RpgItem {
 
 export const rpg_inventory: { [client_name: string]: RpgItem[]; } = { };
 
-export function rpgAddItem(client_name: string, item: RpgItem, count: number = 1): void {
+export function rpgAddItem(client_name: string, item: RpgItem): void {
     getRpgItemSql(client_name, item)
         .then((result) => {
             if(result[0] !== undefined && result[0] !== null) {
-                addRpgItemSql(client_name, item, count);
+                addRpgItemSql(client_name, item, item.getCount());
             }
 
             for (let index = 0; index < rpg_inventory[client_name].length; index++) {
                 if(rpg_inventory[client_name][index].getName() === item.getName()) {
-                    rpg_inventory[client_name][index].addCount(count);
-                    updateRpgItemSql(client_name, item, rpg_inventory[client_name][index].getCount() + count);
+                    updateRpgItemSql(client_name, item, rpg_inventory[client_name][index].getCount() + item.getCount());
                     return;
                 }
             }
@@ -117,12 +116,12 @@ export function rpgGetItems(client_name: string): RpgItem[] {
 }
 
 export function rpgInitItems(client_name: string): void {
+    rpg_inventory[client_name] = [];
     getRpgItemsSql(client_name)
         .then((result) => {
             for (let index = 0; index < result.length; index++) {
-                console.log(result, result.length);
-                rpgAddItem(client_name, new RpgItem(result[index]['name'], result[index]['description'],
-                    result[index]['type'], result[index]['price'], result[index]['count']));
+                const item: RpgItem = new RpgItem(result[index]['name'], result[index]['description'], result[index]['type'], result[index]['price'], result[index]['count'])
+                rpg_inventory[client_name].push(item);
             }
         })
         .catch((err) => {
@@ -134,7 +133,7 @@ export function rpgInitItems(client_name: string): void {
 export function rpgIsExistsItemInInventory(client_name: string, item: RpgItem): boolean {
     for (let index = 0; index < rpg_inventory[client_name].length; index++) {
         if(rpg_inventory[client_name][index].getName() === item.getName()) {
-                return true;
+            return true;
         }
     }
 
