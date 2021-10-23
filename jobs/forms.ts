@@ -3,41 +3,44 @@ import { Player } from "bdsx/bds/player";
 import { playerLog } from "../logs";
 import { clearActiveJob, error, getJobExp, getJobLevel, getJobLimitExp,
     sendMessage, setJob, setJobExp, setJobLevel, success, white, yellow } from "../management";
-import { clearActiveJobSql, getActiveJobSql, setActiveJobSql, setJobLevelAndExpSql } from "../sqlmanager";
+import { clearActiveJobSql, getActiveJobSql, getJobSql, setActiveJobSql, setJobLevelAndExpSql } from "../sqlmanager";
 
-export function mainForm(client: Player, job_name = ''): void {
+export function mainForm(client: Player, job_name: string | null = null): void {
+    const job_level = getJobLevel(client);
+    const job_exp = getJobExp(client);
+    const job_limit_exp = getJobLimitExp(client);
     const form = new SimpleForm();
     form.setTitle('Работы');
 
-    if(job_name === '') {
+    if(job_name === null) {
         form.setContent('Вы никем не работаете!');
     } else {
         switch (job_name) {
             case 'miner':
-                form.setContent(`Вы работаете - Шахтером\nУровень: [ ${getJobLevel(client)} / 5 ]\nОпыт: [ ${getJobExp(client)} / ${getJobLimitExp(client)} ]`);
+                form.setContent(`Вы работаете - Шахтером\nУровень: [ ${job_level} / 5 ]\nОпыт: [ ${job_exp} / ${job_limit_exp} ]`);
                 break;
 
             case 'treecutter':
-                form.setContent(`Вы работаете - Дровосеком\nУровень: [ ${getJobLevel(client)} / 5 ]\nОпыт: [ ${getJobExp(client)} / ${getJobLimitExp(client)} ]`);
+                form.setContent(`Вы работаете - Дровосеком\nУровень: [ ${job_level} / 5 ]\nОпыт: [ ${job_exp} / ${job_limit_exp} ]`);
                 break;
 
             case 'builder':
-                form.setContent(`Вы работаете - Строителем\nУровень: [ ${getJobLevel(client)} / 5 ]\nОпыт: [ ${getJobExp(client)} / ${getJobLimitExp(client)} ]`);
+                form.setContent(`Вы работаете - Строителем\nУровень: [ ${job_level} / 5 ]\nОпыт: [ ${job_exp} / ${job_limit_exp} ]`);
                 break;
 
             case 'killer':
-                form.setContent(`Вы работаете - Убийцей\nУровень: [ ${getJobLevel(client)} / 5 ]\nОпыт: [ ${getJobExp(client)} / ${getJobLimitExp(client)} ]`);
+                form.setContent(`Вы работаете - Убийцей\nУровень: [ ${job_level} / 5 ]\nОпыт: [ ${job_exp} / ${job_limit_exp} ]`);
                 break;
 
             case 'gardener':
-                form.setContent(`Вы работаете - Садовником\nУровень: [ ${getJobLevel(client)} / 5 ]\nОпыт: [ ${getJobExp(client)} / ${getJobLimitExp(client)} ]`);
+                form.setContent(`Вы работаете - Садовником\nУровень: [ ${job_level} / 5 ]\nОпыт: [ ${job_exp} / ${job_limit_exp} ]`);
                 break;
         }
     }
 
     form.addButton(new FormButton(`Список работ`));
 
-    if(job_name !== '') {
+    if(job_name !== null) {
         form.addButton(new FormButton(`Уйти с работы`));
     }
 
@@ -46,7 +49,7 @@ export function mainForm(client: Player, job_name = ''): void {
         if(data.response === null) {
             // pass
         } else {
-            if(job_name !== '') {
+            if(job_name !== null) {
                 switch (data.response) {
                     case 0:
                         jobListForm(client, job_name);
@@ -62,7 +65,7 @@ export function mainForm(client: Player, job_name = ''): void {
             } else {
                 switch (data.response) {
                     case 0:
-                        jobListForm(client);
+                        jobListForm(client, job_name);
                         break;
 
                     case 1:
@@ -73,7 +76,7 @@ export function mainForm(client: Player, job_name = ''): void {
     });
 }
 
-export function jobListForm(client: Player, job_name = ''): void {
+export function jobListForm(client: Player, job_name: string | null = null): void {
     const form = new SimpleForm();
     form.setTitle('Список работ');
     form.addButton(new FormButton('Шахтер'));
@@ -115,7 +118,7 @@ export function jobListForm(client: Player, job_name = ''): void {
     });
 }
 
-export function jobDescriptionAndJoinForm(client: Player, job_name = '', select_job:string): void {
+export function jobDescriptionAndJoinForm(client: Player, job_name: string | null = null, select_job:string): void {
     const form = new SimpleForm();
     let msg_job = '';
     switch (select_job) {
@@ -157,17 +160,22 @@ export function jobDescriptionAndJoinForm(client: Player, job_name = '', select_
                     if(job_name === select_job) {
                         sendMessage(client, `${error} Вы уже работаете на данной работе${white}!`);
                     } else {
-                        if(job_name !== '') {
+                        if(job_name !== null) {
                             sendMessage(client, `${error} Вы уже работаете на другой работе${white}!`);
                         } else {
                             const client_name = client.getName();
-                            const data = await getActiveJobSql(client_name);
-                            playerLog(client_name, `Устроился на работу ${msg_job}!`);
-                            setJobLevel(client, data[0]['level']);
-                            setJobExp(client, data[0]['exp']);
-                            sendMessage(client, `${success} Вы устроились на работу ${yellow}${msg_job}${white}!`);
                             setActiveJobSql(client_name, select_job);
                             setJob(client, select_job);
+                            getActiveJobSql(client_name)
+                                .then((result) => {
+                                    playerLog(client_name, `Устроился на работу ${msg_job}!`);
+                                    setJobLevel(client, result[0]['level']);
+                                    setJobExp(client, result[0]['exp']);
+                                    sendMessage(client, `${success} Вы устроились на работу ${yellow}${msg_job}${white}!`);
+                                })
+                                .catch((err) => {
+                                    console.error(err);
+                                });
                         }
                     }
                     break;
@@ -184,7 +192,7 @@ export function jobDescriptionAndJoinForm(client: Player, job_name = '', select_
     });
 }
 
-export function jobDescriptionForm(client: Player, job_name = '', select_job:string): void {
+export function jobDescriptionForm(client: Player, job_name: string | null = null, select_job:string): void {
     const form = new SimpleForm();
     switch (select_job) {
         case 'miner':

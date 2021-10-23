@@ -1,7 +1,9 @@
 import { Player, ServerPlayer } from "bdsx/bds/player";
 import { events } from "bdsx/event";
-import { BossEventPacket, DisconnectPacket, ScorePacketInfo, SetDisplayObjectivePacket, SetScorePacket, SetTitlePacket, TextPacket } from "bdsx/bds/packets";
-import { getHomeSql, removeWarnSql, setAccountInfoSql, setHomeSql, setInfoBarStatusSql, setRpgModSql, setVipLevelSql, updateHomeSql } from "../sqlmanager/index";
+import { BossEventPacket, DisconnectPacket, ScorePacketInfo, SetDisplayObjectivePacket,
+    SetScorePacket, SetTitlePacket, TextPacket } from "bdsx/bds/packets";
+import { getHomeSql, removeWarnSql, setAccountInfoSql, setHomeSql, setInfoBarStatusSql,
+    setRpgModSql, setVipLevelSql, updateHomeSql } from "../sqlmanager/index";
 import * as moment from 'moment-timezone';
 import { BlockPos, Vec3 } from "bdsx/bds/blockpos";
 import { getRegionPos1, getRegionPos2 } from "../regions/manager";
@@ -12,7 +14,9 @@ import { serverInstance } from "bdsx/bds/server";
 import { bedrockServer } from "bdsx/launcher";
 import { Actor } from "bdsx/bds/actor";
 import * as bcrypt from "bcryptjs";
-import { mods } from "../rpg/index";
+import { mods, mods2 } from "../rpg/index";
+import { Mod, RpgModCorrosion, RpgModGiftOfLife, RpgModLeakage, RpgModLunge,
+    RpgModResuscitation, RpgModShield, RpgModShock, RpgModThorns, RpgModWar } from "../rpg/mods";
 
 let plugins_running = 0;
 
@@ -89,9 +93,9 @@ interface Person {
     rpg_power: number,
     rpg_evolution: number,
     rpg_augmentation: number,
-    rpg_mod: string | null,
+    rpg_mod: Mod | null,
     rpg_mod_level: number,
-    rpg_mod_2: string | null,
+    rpg_mod_2: Mod | null,
     rpg_mod_2_level: number,
 }
 
@@ -1214,7 +1218,7 @@ export function setAccountInfo(client_id: number, client: Player, admin_lvl: num
     money: number, money_bank: number, donate: number, level: number, exp: number, percent_economy: number, job_name: null | string,
     job_level = 0, job_exp = 0, clan_name: null | string, mute_end: moment.Moment | null, warn_end: moment.Moment | null,
     warn_count: number, home_x: number, home_y: number, home_z: number, info_bar: string, rpg_evolution: number,
-    rpg_augmentation: number, rpg_mod: string, rpg_mod_level: number, rpg_mod_2: string, rpg_mod_2_level: number): void {
+    rpg_augmentation: number, rpg_mod: Mod | null, rpg_mod_level: number, rpg_mod_2: Mod | null, rpg_mod_2_level: number): void {
     players[client_id] = {
         id: client_id,
         name: client.getName(),
@@ -1592,9 +1596,37 @@ export function setRpgRandomMod(client: Player): void {
     for (let index = 0; index < maxplayers; index++) {
         if(client === players[index].object && players[index].authorized === true) {
             const value = randomBetweenTwoNumbers(Object.keys(mods).length / 2, 0);
-            players[index].rpg_mod = mods[value];
+            players[index].rpg_mod = convertRpgModSqlToClass(mods[value], 1);
             players[index].rpg_mod_level = 1;
             setRpgModSql(client.getName(), mods[value], 1);
         }
     }
+}
+
+export function convertRpgModSqlToClass(mod: string, rpg_mod_level: number): Mod | null {
+    switch (mod) {
+        case mods[0]:
+            return new RpgModShield(rpg_mod_level);
+        case mods[1]:
+            return new RpgModWar(rpg_mod_level);
+        case mods[2]:
+            return new RpgModThorns(rpg_mod_level);
+        case mods[3]:
+            return new RpgModLunge(rpg_mod_level);
+        case mods[4]:
+            return new RpgModCorrosion(rpg_mod_level);
+        case mods[5]:
+            return new RpgModShock(rpg_mod_level);
+        case mods[6]:
+            return new RpgModLeakage(rpg_mod_level);
+        case mods[7]:
+            return new RpgModGiftOfLife(rpg_mod_level);
+    }
+
+    switch (mod) {
+        case mods2[0]:
+            return new RpgModResuscitation(rpg_mod_level);
+    }
+
+    return null;
 }

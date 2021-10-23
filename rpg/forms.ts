@@ -1,8 +1,10 @@
 import { AttributeId } from "bdsx/bds/attribute";
 import { FormButton, SimpleForm } from "bdsx/bds/form";
 import { Player } from "bdsx/bds/player";
-import { blue, getRpgAugmentation, getRpgEvolution, getRpgMod, getRpgMod2, gold, gray, red, white, yellow } from "../management";
+import { blue, getRpgAugmentation, getRpgEvolution, getRpgMod, getRpgMod2,
+    gold, gray, red, white, yellow, sendMessage, error } from "../management";
 import { rpgGetItems, RpgItem } from "./inventory";
+import { Mod } from "./mods";
 
 export function rpgMainMenu(client: Player): void {
     const form = new SimpleForm();
@@ -15,7 +17,7 @@ export function rpgMainMenu(client: Player): void {
     form.addButton(new FormButton("Помощь"));
     form.sendTo(client.getNetworkIdentifier(), async (data) => {
         if(data.response === null) {
-
+            // pass
         } else {
             switch (data.response) {
                 case 0:
@@ -27,7 +29,7 @@ export function rpgMainMenu(client: Player): void {
                     break;
 
                 case 2:
-
+                    rpgModsForm(client);
                     break;
 
                 case 3:
@@ -54,7 +56,7 @@ export function rpgHelpForm(client: Player, page: number = 1): void {
             form.setContent(`${white}Приветствуем тебя ${yellow}${client.getName()}${white}!
 Так-как Вы здесь первый раз, то расскажу, что к чему здесь.
 ${yellow}Основы${white}:
-${gray}> ${blue}Предметы${white} - Они нужны для прокачки ${gold}Эволюции${white} и ${red}Аугментации${white}! Есть три типа предмета: ${gray}Обычный${white}, ${yellow}Редкий${white}, ${red}Легендарный${white}! Чем выше тип предмета, тем сложнее его найти!
+${gray}> ${blue}Предметы${white} - Они нужны для прокачки ${gold}Эволюции${white} и ${red}Аугментации${white}! Есть три типа предмета: ${blue}Обычный${white}, ${yellow}Редкий${white}, ${red}Легендарный${white}! Чем выше тип предмета, тем сложнее его найти!
 ${gray}> ${blue} Энергия${white} - Это самый важный параметр твоего персонажа, ведь от него зависит, сработает ли модификация во время боя или нет! Энергия пополняется с каждой успешной атакой по врагу, как только энергия будет полностью заполнена, то следующая успешная атака наложит на противиника модификацию!
 ${gray}> ${blue} Первая модификация${white} - Это способность твоего персонажа, она тоже играет важную роль в бою! Чем выше уровень модификации, тем сильнее будет эффект! Максимальный уровень 10!
 ${gray}> ${blue} Вторая модификация${white} - Это второстепенная способность, она открывается после 1 эволюции персонажа! Данная модификация не зависит от энергии персонажа, а срабатывает по шансу после успешной атаки! Модификация может быть заблокирована, если у противника имеется специальная модификация! Максимальный уровень 5!`);
@@ -107,28 +109,30 @@ ${gray}> ${blue} Аугментация - ${white}Это самый послед
 export function rpgStatsForm(client: Player): void {
     const damage = client.getAttribute(AttributeId.AttackDamage);
     const health = client.getAttribute(AttributeId.Health);
-    const [mod, level] = getRpgMod(client);
-    const [mod2, level2] = getRpgMod2(client);
+    const [mod] = getRpgMod(client);
+    const [mod2] = getRpgMod2(client);
+    const evolution = getRpgEvolution(client);
+    const augmentation = getRpgAugmentation(client);
     let msg: string = `${white}Характеристики персонажа ${yellow}${client.getName()}${white}:
 Урон: ${damage}
 Здоровье: ${health}
-Первая модификация: ${mod} (уровень ${level} / 10)\n`;
-    if(mod2 === null || level2 === 0) {
+Первая модификация: ${(mod as Mod).getName()} (уровень ${(mod as Mod).getLevel()} / 10)\n`;
+    if((mod2 as Mod) === null || (mod2 as Mod).getLevel() === 0) {
         msg += 'Вторая модификация: Нету\n';
     } else {
-        msg += `Вторая модификация: ${mod2} (уровень ${level2} / 5)\n`;
+        msg += `Вторая модификация: ${(mod2 as Mod).getName()} (уровень ${(mod2 as Mod).getLevel()} / 5)\n`;
     }
 
-    if(getRpgEvolution(client) === 0) {
+    if(evolution === 0) {
         msg += 'Эволюция: Нету\n';
     } else {
-        msg += `Эволюция: Есть (уровень ${getRpgEvolution(client)} / 2)`;
+        msg += `Эволюция: Есть (уровень ${evolution} / 2)`;
     }
 
-    if(getRpgAugmentation(client) === 0) {
+    if(augmentation === 0) {
         msg += 'Аугментация: Нету\n';
     } else {
-        msg += `Аугментация: Есть (уровень ${getRpgAugmentation(client)} / 50)`;
+        msg += `Аугментация: Есть (уровень ${augmentation} / 50)`;
     }
 
 
@@ -175,7 +179,7 @@ export function rpgItemDescriptionForm(client: Player, item: RpgItem): void {
     let type;
     switch(item.getType()) {
         case 1:
-            type = `${gray}Обычный${white}`;
+            type = `${blue}Обычный${white}`;
             break;
 
         case 2:
@@ -195,6 +199,45 @@ export function rpgItemDescriptionForm(client: Player, item: RpgItem): void {
 
         } else {
             rpgItemsForm(client);
+        }
+    });
+}
+
+export function rpgModsForm(client: Player): void {
+    let msg = '';
+    const [mod] = getRpgMod(client);
+    const [mod2] = getRpgMod2(client);
+    if((mod2 as Mod) === null || (mod2 as Mod).getLevel() === 0) {
+        msg += 'Вторая модификация: Нету\n';
+    } else {
+        msg += `Вторая модификация: ${(mod2 as Mod).getName()} (уровень ${(mod2 as Mod).getLevel()} / 5)\nОписание: ${(mod2 as Mod).getDescription()}`;
+    }
+    const form = new SimpleForm();
+    form.setTitle(`RPG Модификации`);
+    form.setContent(`Первая модификация: ${(mod as Mod).getName()} (уровень ${(mod as Mod).getLevel()} / 10)
+Описание: ${(mod as Mod).getDescription()}\n${msg}`);
+    form.addButton(new FormButton("Сменить первую\nмодификацию"));
+    form.addButton(new FormButton("Сменить вторую\nмодификацию"));
+    form.addButton(new FormButton("Назад"));
+    form.sendTo(client.getNetworkIdentifier(), async (data) => {
+        if(data.response === null) {
+
+        } else {
+            switch (data.response) {
+                case 0:
+                    break;
+
+                case 1:
+                    if(getRpgEvolution(client) <= 0) {
+                        sendMessage(client, `${error} Вы не можете установить вторую модификацию из-за низкого уровня ${gold}Эволюции${white}!`);
+                        break;
+                    }
+
+                    break;
+
+                case 2:
+                    break;
+            }
         }
     });
 }

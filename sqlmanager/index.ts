@@ -368,9 +368,7 @@ export function setLevelJobSql(client_name: string, level: number, exp: number, 
 }
 
 export function getActiveJobSql(client_name: string): Promise<any> {
-    const sql = `SELECT *
-        FROM job WHERE player_id = (SELECT id FROM accounts WHERE user_name = ?)
-        AND status = 'current'`;
+    const sql = `SELECT * FROM job WHERE player_id = (SELECT id FROM accounts WHERE user_name = ?) AND status = 'current'`;
     return new Promise((resolve, reject) => {
         connection.query(sql, [client_name], function(err, results) {
             if(err) {

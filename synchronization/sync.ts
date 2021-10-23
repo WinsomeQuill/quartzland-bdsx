@@ -1,29 +1,23 @@
-import { events } from "bdsx/event";
 import { syncAccountInfo, syncAccountWarnTime, syncAccountVipTime,
     stopsyncAccountInfo, stopSyncAccountWarnTime, stopSyncAccountVipTime,
     runAuthTeleport, stopAuthTeleport, updateMOTD, autoRestart, stopUpdateMOTD,
     stopAutoRestart } from "../management/index";
-import { regCmd } from "../simplecommands/commands";
 
-console.log('[/] Synchronization allocated!');
-
-events.serverOpen.on(()=>{
+let status = true;
+if(status) {
     syncAccountInfo();
     syncAccountWarnTime();
     syncAccountVipTime();
     runAuthTeleport();
     updateMOTD();
     autoRestart();
-    regCmd();
-    console.log('[+] Synchronization enabled!');
-});
-
-events.serverClose.on(()=>{
+    console.log('[Thread] [+] Synchronization enabled!');
+} else {
     stopsyncAccountInfo();
     stopSyncAccountWarnTime();
     stopSyncAccountVipTime();
     stopAuthTeleport();
     stopUpdateMOTD();
     stopAutoRestart();
-    console.log('[-] Synchronization disabled!');
-});
+    console.log('[Thread] [-] Synchronization disabled!');
+}

@@ -1,11 +1,17 @@
 import { CustomForm, FormInput, FormLabel } from "bdsx/bds/form";
 import { Player } from "bdsx/bds/player";
-import { blue, bold, getPlayerIdByObject, green, kick, red, reset, sendMessage, sendTip, sendSubtitle, setAuthorized, setLevel, setMoneyCache, setPercentCache, success, white, yellow, networkkick, sendTitle, getTime, setAccountInfo, addCommas, isVip, getAdminLevel, info, broadcastMessageOnlyAdmins, gold, dark_blue, light_blue, bcryptHashed, bcryptHashCompare, getTimeFormat, getInfoBarStatus, setRpgRandomMod } from "../management/index";
-import { createAccountSql, createJobProfile, getClanAndRankByMemberSql, getHomeSql, getInfoBarStatusSql, getJobSql, getMuteSql, getRpgElementsSql, getSyncAccountSql, getWarnSql, removeWarnSql, setVipEndSql, setVipLevelSql } from "../sqlmanager";
+import { blue, bold, getPlayerIdByObject, green, kick, red, reset, sendMessage, sendTip, sendSubtitle,
+    setAuthorized, setLevel, setMoneyCache, setPercentCache, success, white, yellow, networkkick,
+    sendTitle, getTime, setAccountInfo, addCommas, isVip, convertRpgModSqlToClass, broadcastMessageOnlyAdmins,
+    gold, dark_blue, light_blue, bcryptHashed, bcryptHashCompare, getTimeFormat, setRpgRandomMod } from "../management/index";
+import { createAccountSql, createJobProfile, getClanAndRankByMemberSql, getHomeSql, getInfoBarStatusSql,
+    getJobSql, getMuteSql, getRpgElementsSql, getSyncAccountSql, getWarnSql, removeWarnSql, setVipEndSql, setVipLevelSql } from "../sqlmanager";
 import { NetworkIdentifier } from "bdsx/bds/networkidentifier";
 import { playerLog } from "../logs";
 import { Vec3 } from "bdsx/bds/blockpos";
 import { rpgInitItems } from "../rpg/inventory";
+import { Mod } from "../rpg/mods";
+import { Moment } from "moment-timezone";
 
 export function regForm(client: Player, description = `У вас есть ${red}30${white} секунд, чтобы зарегистрироватся!`,
     x1: number, y1: number, z1: number, timer: NodeJS.Timeout): void {
@@ -94,31 +100,18 @@ export function authForm(client: Player, description = `У вас есть ${red
                     });
 
                 const client_id = getPlayerIdByObject(client);
-                let level = 1;
-                let exp = 0;
-                let mute_end: any = null;
-                let warn_end: any = null;
-                let AdmLvl = 0;
-                let vip_lvl = 0;
-                let vip_end: any = null;
-                let job_name: any = null;
-                let clan_name: any = null;
-                let home_x = 0;
-                let home_y = 0;
-                let home_z = 0;
-                let job_level = 0;
-                let job_exp = 0;
-                let warn_count = 0;
+                let mute_end: Moment | null, warn_end: Moment | null, vip_end: Moment | null,
+                    job_name: string | null, clan_name: string | null;
+
+                let exp: number, AdmLvl: number, vip_lvl: number, home_x: number,
+                    home_y: number, home_z: number, job_level: number, job_exp: number,
+                    warn_count: number, rpg_evolution: number, rpg_augmentation: number,
+                    rpg_mod_level: number, rpg_mod_2_level: number, money: number,
+                    bank: number, donate: number, level = 1;
+
                 let rpg_info_bar = "ON";
-                let rpg_evolution = 0;
-                let rpg_augmentation = 0;
-                let rpg_mod = "";
-                let rpg_mod_level = 0;
-                let rpg_mod_2 = "";
-                let rpg_mod_2_level = 0;
-                let money = 0;
-                let bank = 0;
-                let donate = 0;
+
+                let rpg_mod: Mod | null, rpg_mod_2:  Mod | null;
 
                 getSyncAccountSql(client_name)
                     .then((data) => {
@@ -205,20 +198,20 @@ export function authForm(client: Player, description = `У вас есть ${red
                                                                     if(rpg_elements[0] !== undefined) {
                                                                         rpg_evolution = rpg_elements[0]['Evolution'];
                                                                         rpg_augmentation = rpg_elements[0]['Augmentation'];
-                                                                        rpg_mod = rpg_elements[0]['ModName'];
                                                                         rpg_mod_level = rpg_elements[0]['ModLevel'];
+                                                                        rpg_mod = convertRpgModSqlToClass(rpg_elements[0]['ModName'], rpg_mod_level);
                                                                         console.log(rpg_elements[0]['ModName'], rpg_elements[0]['ModLevel']);
                                                                         if(rpg_elements[0]['ModName2'] !== undefined && rpg_elements[0]['ModLevel2'] !== undefined) {
-                                                                            rpg_mod_2 = rpg_elements[0]['ModName2'];
                                                                             rpg_mod_2_level = rpg_elements[0]['ModLevel2'];
+                                                                            rpg_mod_2 = convertRpgModSqlToClass(rpg_elements[0]['ModName2'], rpg_mod_2_level);
                                                                         } else {
-                                                                            rpg_mod_2 = "";
+                                                                            rpg_mod_2 = null;
                                                                             rpg_mod_2_level = 0;
                                                                         }
                                                                     }
 
                                                                     if(client_id !== undefined) {
-                                                                        console.log(`Bar: ${rpg_info_bar} | Evo: ${rpg_evolution} | Aug: ${rpg_augmentation} | Mod: ${rpg_mod} | Lvl: ${rpg_mod_level} | Mod2: ${rpg_mod_2} | Lvl2: ${rpg_mod_2_level}`);
+                                                                        console.log(`Bar: ${rpg_info_bar} | Evo: ${rpg_evolution} | Aug: ${rpg_augmentation} | Mod: ${rpg_mod?.getName()} | Lvl: ${rpg_mod_level} | Mod2: ${rpg_mod_2?.getName()} | Lvl2: ${rpg_mod_2_level}`);
                                                                         setAccountInfo(client_id, client, AdmLvl,
                                                                             vip_lvl, vip_end, money, bank,
                                                                             donate, level, exp,
