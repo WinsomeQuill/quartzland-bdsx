@@ -1596,9 +1596,13 @@ export function setRpgRandomMod(client: Player): void {
     for (let index = 0; index < maxplayers; index++) {
         if(client === players[index].object && players[index].authorized === true) {
             const value = randomBetweenTwoNumbers(Object.keys(mods).length / 2, 0);
-            players[index].rpg_mod = convertRpgModSqlToClass(mods[value], 1);
-            players[index].rpg_mod_level = 1;
-            setRpgModSql(client.getName(), mods[value], 1);
+            if(players[index].rpg_mod?.getName() === mods[value]) {
+                setRpgRandomMod(client);
+            } else {
+                players[index].rpg_mod = convertRpgModSqlToClass(mods[value], 1);
+                players[index].rpg_mod_level = 1;
+                setRpgModSql(client.getName(), mods[value], 1);
+            }
         }
     }
 }

@@ -1,9 +1,10 @@
 import { AttributeId } from "bdsx/bds/attribute";
-import { FormButton, SimpleForm } from "bdsx/bds/form";
+import { FormButton, ModalForm, SimpleForm } from "bdsx/bds/form";
 import { Player } from "bdsx/bds/player";
 import { blue, getRpgAugmentation, getRpgEvolution, getRpgMod, getRpgMod2,
-    gold, gray, red, white, yellow, sendMessage, error } from "../management";
-import { rpgGetItems, RpgItem } from "./inventory";
+    gold, gray, red, white, yellow, sendMessage, error, green, setRpgRandomMod } from "../management";
+import { rpgGetItems, rpgIsExistsItemForMod, rpgTakeCountItem } from "./inventory";
+import { RpgItem } from "./items";
 import { Mod } from "./mods";
 
 export function rpgMainMenu(client: Player): void {
@@ -225,6 +226,7 @@ export function rpgModsForm(client: Player): void {
         } else {
             switch (data.response) {
                 case 0:
+                    rpgItemsForChangeModForm(client);
                     break;
 
                 case 1:
@@ -236,7 +238,52 @@ export function rpgModsForm(client: Player): void {
                     break;
 
                 case 2:
+                    rpgMainMenu(client);
                     break;
+            }
+        }
+    });
+}
+
+export function rpgItemsForChangeModForm(client: Player): void {
+    const client_name = client.getName();
+    const form = new ModalForm();
+    form.setTitle(`RPG Модификации`);
+    form.setContent(`Для смены первой модификации нужно ${blue}Эссенция Льда 3 шт.${white} или ${blue}Медь 3 шт.${white}, ${yellow}Магическая Пыльца 2 шт. ${white}и ${gold}Синий Кристалл 1 шт.${white}\n${red}Внимание! ${white}Если Вы согласитесь на смену, то текущая модификацию будет удалена навсегда, а её место займет другая случайная модификация ${yellow}1 уровня${white}! ${yellow}Будьте внимательны!${white}`);
+    form.setButtonConfirm(`${green}Сменить модификацию`);
+    form.setButtonCancel(`${red}Отмена`);
+    form.sendTo(client.getNetworkIdentifier(), async (data) => {
+        if(data.response === null) {
+
+        } else {
+            if(data.response) {
+                if(!rpgIsExistsItemForMod(client_name, 'Эссенция Льда', 3) && !rpgIsExistsItemForMod(client_name, 'Медь', 3)) {
+                    sendMessage(client, `${error} У вас недостаточно "${blue}Эссенция Льда${white}" или "${blue}Медь${white}" для смены первой модификации!`);
+                    return;
+                }
+
+                if(!rpgIsExistsItemForMod(client_name, 'Магическая Пыльца', 2)) {
+                    sendMessage(client, `${error} У вас недостаточно "${yellow}Магическая Пыльца${white}" для смены первой модификации!`);
+                    return;
+                }
+
+                if(!rpgIsExistsItemForMod(client_name, 'Синий Кристалл', 1)) {
+                    sendMessage(client, `${error} У вас недостаточно "${gold}Синий Кристалл${white}" для смены первой модификации!`);
+                    return;
+                }
+
+                if(rpgIsExistsItemForMod(client_name, 'Эссенция Льда', 3)) {
+                    rpgTakeCountItem(client_name, 'Эссенция Льда', 3);
+                } else {
+                    rpgTakeCountItem(client_name, 'Медь', 3);
+                }
+
+                rpgTakeCountItem(client_name, 'Магическая Пыльца', 2);
+                rpgTakeCountItem(client_name, 'Синий Кристалл', 1);
+                setRpgRandomMod(client);
+                rpgModsForm(client);
+            } else {
+                rpgModsForm(client);
             }
         }
     });

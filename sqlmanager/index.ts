@@ -3,7 +3,7 @@ import { events } from "bdsx/event";
 import { yellow, white, getIP, getPlayerByName, getTime } from "../management/index";
 import * as mysql from "mysql2";
 import * as dotenv from "dotenv";
-import { RpgItem } from "../rpg/inventory";
+import { RpgItem } from "../rpg/items";
 dotenv.config({path: '/home/artem/minecraft-server-1/.env'});
 
 const connection = mysql.createConnection({
@@ -1095,13 +1095,35 @@ export function getInfoBarStatusSql(client_name: string): Promise<any> {
     });
 }
 
-export async function setRpgModSql(client_name: string, mod: string, mod_level: number): Promise<any> {
-    const sql = `INSERT INTO rpg_players_mods (player_id, mod_id, mod_level) VALUES((SELECT id FROM accounts WHERE user_name = ?),(SELECT id FROM rpg_mods WHERE name = ?), ?)`;
-    connection.query(sql, [client_name, mod, mod_level], function(err) {
-        if(err) {
-            console.log(err);
-        }
+export function getRpgModSql(client_name: string): Promise<any> {
+    const sql = `SELECT pm.mod_id FROM rpg_players_mods AS pm, accounts AS ac WHERE pm.player_id = ac.id AND ac.user_name = ?`;
+    return new Promise((resolve, reject) => {
+        connection.query(sql, [client_name], function(err, results: any) {
+            if(err) {
+                console.error(err);
+                return reject(err);
+            }
+            return resolve(results);
+        });
     });
+}
+export async function setRpgModSql(client_name: string, mod: string, mod_level: number): Promise<any> {
+    getRpgModSql(client_name)
+        .then((result) => {
+            if(result[0] !== undefined && result[0] !== null) {
+                updateRpgModSql(client_name, mod, mod_level);
+            } else {
+                const sql = `INSERT INTO rpg_players_mods (player_id, mod_id, mod_level) VALUES((SELECT id FROM accounts WHERE user_name = ?), (SELECT id FROM rpg_mods WHERE name = ?), ?)`;
+                connection.query(sql, [client_name, mod, mod_level], function(err) {
+                    if(err) {
+                        console.log(err);
+                    }
+                });
+            }
+        })
+        .catch((err) => {
+            console.error(err);
+        });
 }
 
 export async function updateRpgModSql(client_name: string, mod: string, mod_level: number): Promise<any> {
@@ -1161,9 +1183,9 @@ export function getRpgItemSql(client_name: string, item: RpgItem): Promise<any> 
     });
 }
 
-export function updateRpgItemSql(client_name: string, item: RpgItem, count: number): void {
+export function updateRpgItemSql(client_name: string, item_name: string, count: number): void {
     const sql = `UPDATE rpg_players_items SET count = ? WHERE rpg_players_items.player_id = (SELECT id FROM accounts WHERE user_name = ?) AND rpg_players_items.item_id = (SELECT id FROM rpg_items WHERE name = ?)`;
-    connection.query(sql, [count, client_name, item.getName()], function(err) {
+    connection.query(sql, [count, client_name, item_name], function(err) {
         if(err) {
             console.error(err);
         }
